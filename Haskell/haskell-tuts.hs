@@ -105,5 +105,6 @@ listBiggerThan5 = filter (>5) morePrimes
 
 evensUpTo20 = takeWhile (<= 20) [2,4..]
 
-multOfList = foldl (*) 1 [2,3,4,5]
+divOfListFromLeft = foldl (/) 1 [2,3,4,5] -- (/) ((/) ((/) ((/) 1 2) 3) 4) 5
+divOfListFromRight = foldr (/) 1 [2,3,4,5] -- (/) 2 ((/) 3 ((/) 4 ((/) 5 1)))
 
