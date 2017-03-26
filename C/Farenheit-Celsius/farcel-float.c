@@ -15,6 +15,10 @@ int main(int argc, char const *argv[]) {
     while (fahr <= upper) {
         // "integer division truncates: any fractional part is discarded"
         celsius = 5.0/9.0 * (fahr - 32.0);
+        // "If an arithmetic operator has one floating-point operand and
+        // one integer operand, however, the integer will be converted
+        // to floating point before the operation is done."
+        
         // %3.0f : "[..] floating-point is to be printed at least three
         // characters wide, with no decimal point and no fraction digits."
 
