@@ -89,7 +89,7 @@ cylinder' r h = sideArea + 2 * topArea
 
 -- Case expression
 
--- the same thing as this
+-- head' does the same thing as this, but with case expression
 head'' :: [a] -> a
 head'' xs = case xs of [] -> error "No head for empty lists!"
                        (x:_) -> x
