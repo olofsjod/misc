@@ -12,6 +12,11 @@ dispatch :: String -> [String] -> IO ()
 dispatch "add" = add
 dispatch "view" = view
 dispatch "remove" = remove
+dispatch command = doesntExist command
+
+doesntExist :: String -> [String] -> IO ()
+doesntExist command _ =
+  putStrLn $ "The " ++ command ++ " command doesn't exist"
 
 add :: [String] -> IO ()
 add [fileName, todoItem] = appendFile fileName (todoItem ++ "\n")
