@@ -20,6 +20,7 @@ doesntExist command _ =
 
 add :: [String] -> IO ()
 add [fileName, todoItem] = appendFile fileName (todoItem ++ "\n")
+add _ = putStrLn "The add command takes exactly two arguments"
 
 view :: [String] -> IO ()
 view [fileName] = do
