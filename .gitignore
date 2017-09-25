@@ -1,4 +1,6 @@
 *~
 *#
 *.out
+*.hi
+*.o
 .DS_Store
