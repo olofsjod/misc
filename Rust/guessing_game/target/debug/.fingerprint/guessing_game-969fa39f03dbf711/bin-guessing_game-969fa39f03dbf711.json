@@ -1,0 +1,1 @@
+{"rustc":311716072767395657,"features":"[]","target":7723153709733458989,"profile":731176819336294830,"deps":[["rand v0.4.2",14026792958144645625]],"local":[{"MtimeBased":[[1517398725,24995359],"/home/medik/Dev/lang-hack/Rust/guessing_game/target/debug/.fingerprint/guessing_game-969fa39f03dbf711/dep-bin-guessing_game-969fa39f03dbf711"]}],"rustflags":[]}
