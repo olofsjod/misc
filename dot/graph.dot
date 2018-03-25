@@ -1,0 +1,17 @@
+digraph {
+	client_wait -> client_check;
+	client_check -> create_board[label="yes"];
+	create_board -> wait_delta_t -> process_commands -> respond_client -> update_tick;
+	client_check -> reset_state[label="no"];
+	reset_state -> client_wait;
+	update_tick -> wait_delta_t;
+
+	client_wait [label="Wait on client"];
+	client_check [label="Are there an incoming client?"];
+	reset_state [label="Reset state"];
+	create_board [label="Create a tetris board"];
+	wait_delta_t [label="Wait Δt"];
+	process_commands [label="Process commands"];
+	respond_client [label="Respond client"];
+	update_tick [label="Increment tick"];
+}
