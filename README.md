@@ -1,4 +1,4 @@
-# lang-hack
+# misc
 
 This is a git repository containing various unfinished/finished code projects
 written from 2014 and forward. As a result of my previous years exploring the
