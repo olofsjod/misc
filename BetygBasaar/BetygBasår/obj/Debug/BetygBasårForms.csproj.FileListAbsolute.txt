@@ -1,0 +1,8 @@
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\bin\Debug\BetygBasårForms.exe
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\bin\Debug\BetygBasårForms.pdb
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\BetygBasårForms.Form1.resources
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\BetygBasårForms.Properties.Resources.resources
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\BetygBasårForms.csproj.GenerateResource.Cache
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\BetygBasårForms.exe
+C:\Users\olof\Documents\Visual Studio 2008\Projects\BetygBasårForms\BetygBasårForms\obj\Debug\BetygBasårForms.pdb

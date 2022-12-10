@@ -1,0 +1,408 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+
+"""""""
+ImgDown, written by Olof <medik> Sjödin
+Last modified: 2016-05-02
+
+ImgDown is used as image extractor to recursively download matched pattern.
+The pattern is a regular expression. 
+
+See https://en.wikipedia.org/wiki/Regular_expression for reference.
+
+Usage:
+./imgdown --download --link 'http://foo/bar' --regex '.*catpics\.jpe?g'
+"""""""
+
+IMGDOWN_VERSION = "v1.2"
+USERAGENT_DICT = "useragent-dict.txt"
+REGEX_DICT = "regex-dict.txt"
+
+
+require 'curb'
+require 'uri'
+require 'open-uri'
+require 'nokogiri'
+require 'trollop'
+require 'fileutils'
+
+$opts = Trollop::options do
+	version "ImgDown #{IMGDOWN_VERSION}"
+	banner <<-EOS
+ImgDown is used as image extractor to recursively download matched pattern.
+The pattern is a regular expression. 
+
+See https://en.wikipedia.org/wiki/Regular_expression for reference.
+
+Example:
+./imgdown --download --link 'http://foo/bar' --regex '.*catpics\.jpe?g'
+
+Usage:
+./imgdown [options]
+
+Where the options can be the following flags.
+EOS
+	
+	opt :download, "This trigger the download sequence.", :short => 'd', :default => false
+	opt :regex, "Use this tag to define a regular expression.", :short => 'r', :type => String, :default => "(.*)" # TODO: How does the regex for this program work.
+	opt :link, "Link to the page that you want to download images from.", :short => 'l', :type => String
+	opt :destination, "This defines the folder you want to download images to.", :short => 't', :type => String, :default => Dir.pwd
+	opt :userAgent, "Use this tag if you want to specify a user-agent.", :short => 's', :type => String, :default => "ImgDown #{IMGDOWN_VERSION}"
+	opt :choose_userAgent, "Retrieve a list of saved user agents.", :default => false
+	opt :choose_regex, "Retrieve a list of saved regular expressions", :default => false
+    opt :toOverwrite, "If you want to overwrite existing files with the same name", :short => 'i', :default => false
+	opt :extensions, "The fileextensions imgdown will looking for", :short => 'x', :type => :strings, :default => ["jpe?g","png","gif"]
+end
+
+Trollop::die :link, "must exist" if $opts[:link] == "" || $opts[:link] == nil
+
+##
+# Check if a regex exist in a list of regexes
+
+def doesRegExExist(regexList, re) 
+	return regexList.include? re
+end
+
+##
+# Ask what RegEx to use
+
+def askREFromUser(regexList)
+	system("clear")
+
+	loop do
+        begin
+        	i = 0
+      		puts "\nChoose user agent from this list\n"
+    		regexList.each do |ua|
+				puts "#{i+1} #{ua}"
+				i += 1
+			end
+            system("stty raw -echo")
+            num = Integer(STDIN.getc)
+        ensure
+            system("stty -raw echo")
+        end
+
+        if num > regexList.length or num <= 0 then
+      		system("clear")
+        	puts "Don't mess with me."
+        else
+        	puts "You choose #{regexList[num-1]}"
+        	return regexList[num-1]
+        end
+
+    end
+end
+
+##
+# Retrieveing saved RegExes from $USER
+
+def getRegExes(filepath)
+	fh = File.open(filepath)
+	ret = Array.new
+	
+	fh.each do |line|
+		ret.push(line.delete!("\n"))
+	end
+
+	fh.close()
+	return ret
+end
+
+##
+# Saving RegExes to a defined path
+
+def saveRegExes(newRegExes, filepath)
+	fh = File.open(filepath, 'w')
+	fh.truncate(0)
+
+	newRegExes.each do |ua|
+		fh.write(ua)
+		fh.write("\n")
+	end	
+	fh.close()
+end
+
+##
+# Check if user agent exist in the list of user-agents
+
+def doesUAexist(userAgentList, ua)
+	return userAgentList.include? ua
+end
+
+##
+# Ask what user-agents to use
+
+def askUAFromUser(userAgents)
+	system("clear")
+
+	loop do
+        begin
+        	i = 0
+      		puts "\nChoose user agent from this list\n"
+    		userAgents.each do |ua|
+				puts "#{i+1} #{ua}"
+				i += 1
+			end
+            system("stty raw -echo")
+            num = Integer(STDIN.getc)
+        ensure
+            system("stty -raw echo")
+        end
+
+        if num > userAgents.length or num <= 0 then
+      		system("clear")
+        	puts "Don't mess with me."
+        else
+        	puts "You choose #{userAgents[num-1]}"
+        	return userAgents[num-1]
+        end
+
+    end
+end
+
+
+##
+# Retrieving saved user-agents from $USER
+
+def getUserAgents(filepath)
+	fh = File.open(filepath)
+	ret = Array.new
+	
+	fh.each do |line|
+		ret.push(line.delete!("\n"))
+	end
+
+	fh.close()
+	return ret
+end
+
+##
+# Saving user-agent to user-defined
+
+def saveUserAgent(newUserAgents, filepath)
+	fh = File.open(filepath, 'w')
+	fh.truncate(0)
+
+	newUserAgents.each do |ua|
+		fh.write(ua)
+		fh.write("\n")
+	end	
+	fh.close()
+end
+
+##
+# Parsing a URL and returns the filename and extension
+
+def extractFilename(url)
+	url =~ /^.*\/(.*)\.(.*)$/
+	if url == "" or url == nil then
+		return ""
+	else
+		return "#{$1}.#{$2}"
+	end
+end
+
+##
+# Extracts the hostname from a URL
+
+def getHostname(uri)
+	uri =~ /^(https?:\/\/([a-zA-Z0-9]+\.)+[a-zA-Z0-9]+)(\/.*)?$/
+	return "#{$1}"
+end
+
+##
+# Checking if a file exists in a directory.
+ 
+def doublet?(file, dir)
+        return File.exists?("#{dir}/#{file}")
+end
+
+##
+# This function searchs a HTML documents after images-urls
+# and links that matches specified regular expression and 
+# file extension.
+
+def findLinks(url, regExp, userAgent, fileExt)
+	nokogiriHtmlImg = Nokogiri::HTML(
+            open(url, 'User-Agent' => userAgent)).xpath('.//img/@src').to_a
+	nokogiriAHref = Nokogiri::HTML(
+            open(url,'User-Agent' => userAgent)).xpath('.//a/@href').to_a
+	
+	arrayOfLinks = nokogiriHtmlImg + nokogiriAHref
+	
+	ret = []
+	
+	# Fixing links
+	arrayOfLinks.each do |link|
+		if "#{link}" =~ /#{regExp}/
+			case link
+			# /foo/bar/img
+			when /^\/[^\/].*\.(#{fileExt})$/
+				ret.push("#{getHostname(url)}#{link}")
+			# https?://foo.bar [..] .fileext
+			when /^https?:\/\/.*\.(#{fileExt})$/
+				ret.push("#{link}")
+			# abcd01234/foo [..] .fileext
+			when /^[a-zA-Z0-9]+.*\/.*\.(#{fileExt})$/
+				ret.push("#{getHostname(url)}/#{link}")
+			when /^\/\/http:\/\/(.*\.(#{fileExt}))$/
+				ret.push("http://#{$1}")
+			when /^\/\/(?!https?)(.*\.(#{fileExt}))$/
+				ret.push("http://#{$1}")
+            when /.*#{fileExt}$/
+               	ret.push("#{url}/#{link}")
+			end
+		end
+	end
+	
+	# No matches.
+	if	ret.count == 0
+		puts "Zero matches."
+	end
+
+	# Return matches.
+	return	ret.uniq
+end
+
+##
+# Downloads specified file to downloadPath. User-agent must be specified.
+
+def downloadFile(uri, downloadPath, userAgent)
+	uri = URI(URI.parse(URI.encode(uri)))
+	puts "Downloading #{URI} to #{downloadPath}/#{extractFilename(URI)}..."
+	
+	fh = open("#{downloadPath}/#{extractFilename(URI)}", "wb")
+	
+	curl = Curl::Easy.new(uri.to_s)
+	curl.perform
+	
+	fh.write(curl.body_str)
+	fh.close
+
+end
+
+##
+# This function will download multiple files specified in a array of links.
+# It will be downloaded to downloadPath and user-agent must be specifed. That
+# includes if it should toOverwrite or not.
+
+def downloadMultipleFiles(links, downloadPath, userAgent, toOverwrite)
+    # There should be a check whether the directory exist or not. TODO
+    if not File.directory?(downloadPath) then
+        puts "Path is not valid! Trying to create the path."
+        FileUtils::mkdir_p downloadPath
+    end
+    
+    if toOverwrite then
+            puts "toOverwrite mode is on, ImgDown will toOverwrite existing files"
+    end
+    
+    links.each do |url|
+            hasDoublet = doublet?(extractFilename(url), downloadPath)
+            if toOverwrite or !hasDoublet then
+                    downloadFile(url, downloadPath, userAgent)
+            elsif hasDoublet then
+                    if yesno("There was already an "\
+                                "'#{extractFilename(url)}' "\
+                                " in the directory!\n Continue?") then 
+                            downloadFile(url, downloadPath, userAgent)
+                    else
+                            puts "Quiting."
+                            exit
+                    end
+            end
+    end
+end
+
+##
+# Will ask the user yes or no with a specified question. If user ignore this
+# then it will ask again.
+
+def yesno(question)
+    puts "#{question} [y/n]"
+    loop do
+        begin
+                system("stty raw -echo")
+                str = STDIN.getc
+        ensure
+                system("stty -raw echo")
+        end
+
+        if str == "Y" || str == "y"
+            return true
+        elsif str == "N" || str == "n"
+            return false
+        else
+            puts "Please enter [y]es or [n]o."
+        end
+    end
+end
+
+##
+# The main function.
+
+def main()
+	system("clear")
+
+	# Checks for User agent
+	userAgent = ""
+	savedUAs = getUserAgents(USERAGENT_DICT)
+	if $opts[:choose_userAgent] then
+		userAgent = askUAFromUser(savedUAs)
+	else
+		userAgent = $opts[:userAgent]
+		if not doesUAexist(savedUAs, userAgent) then
+			yes = yesno("It seems that the user agent you choose does not exist in our list of user agents, do you want to save it?")
+			if yes then
+				savedUAs.push(userAgent)
+				saveUserAgent(savedUAs, USERAGENT_DICT)
+				puts "Saved!"
+			end
+
+		end
+	end
+
+	# Checks for Reg Ex
+	regex = ""
+	savedRE = getRegExes(REGEX_DICT)
+	if $opts[:choose_regex] then
+		regex = askREFromUser(savedRE)
+	else
+		regex = $opts[:regex]
+		if not doesRegExExist(savedRE, regex) then
+			yes = yesno("It seems that the regular expression you are using is not in your list of regular expressions, do you want to save it?")
+			if yes then
+				savedRE.push(regex)
+				saveRegExes(savedRE, REGEX_DICT)
+				puts "Saved!"
+			end
+		end
+	end
+
+    puts "Will match #{$opts[:regex]} in #{$opts[:link]}..."
+    results = findLinks($opts[:link], $opts[:regex], userAgent,
+                            $opts[:extensions].join("|"))
+
+    if $opts[:downl_mode] then
+        downloadMultipleFiles(results, $opts[:destination], $opts[:userAgent],
+                  $opts[:toOverwrite])
+
+    elsif !$opts[:downl_mode] then
+        if results.count > 0 then 
+            results.each do |link|
+                    puts "#{link}"
+            end
+
+            download = yesno("Do you want to download these files to"\
+                    " #{$opts[:destination]}?")
+
+            if download then
+                downloadMultipleFiles(results, $opts[:destination], $opts[:userAgent],
+                        $opts[:toOverwrite])
+            end
+        end
+    end
+end
+
+main()

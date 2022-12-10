@@ -1,0 +1,8 @@
+Detta program är direkt inriktat för basårsstudenter (ej bastermin) på KTH.
+
+Du använder BetygBasår genom att ladda ned BetygBasår.exe och startar exe-filen (viktigt). Sedan väljer du vad du har fått betyg i respektive ämne, när du har gjort det skall ett snitt vara beräknat. Detta snitt är det du förmodligen det du använder för att konkurrera med andra basårsstudenter. Om inte, så beror det på att du har valt fel slutbetyg.
+
+Mer information om garantiplats m.m. på 
+http://www.kth.se/utbildning/anmalan-antagning-behorighet/urval/garantiplatser-for-tekniskt-basar-bastermin-1.72770
+
+Koden finns för överblick i katalogen "BetygBasår" och dess underkataloger.
