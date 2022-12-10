@@ -1,7 +1,9 @@
 # lang-hack
 
-This is a repository containing files as a result of me exploring the universe of tools for computers. It can be everything from libraries to new programming languages. I think it is fun to learn new things.
+This is a git repository containing various unfinished/finished code projects
+written from 2014 and forward. As a result of my previous years exploring the
+universe of computers.
 
-The author of this repository is Olof Sjödin, written from 2014-2017. If you find anything in this repository useful to you, please let me know. 
+Maybe someone will find it useful or not. To be honest, I don't care. 
 
-Everything in this repository is licensed with GNU General Public License v3. Please consult the file 'COPYING' on more information about what it means.
+You're welcome to do whatever you want with the code you find here.
